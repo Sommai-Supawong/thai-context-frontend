@@ -27,7 +27,7 @@ export default function WordResultCard({
     >
       <div className="card-meta">
         <span>{String(index + 1).padStart(2, "0")}</span>
-        <span>{Math.round(word.score * 100)}% ตรงกับความหมาย</span>
+        <span>{word.score === undefined ? "คำใกล้เคียง" : `${Math.round(word.score * 100)}% ตรงกับความหมาย`}</span>
       </div>
       <h3>
         {word.headword} {word.pos && <small>[{word.pos}]</small>}

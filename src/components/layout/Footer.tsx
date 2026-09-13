@@ -1,6 +1,6 @@
 export default function Footer() {
   return (
-    <footer className="site-footer">
+    <footer id="footer" className="site-footer">
       <div>
         <span className="footer-mark">THAI CONTEXT</span>
         <p>จาก “ค้นคำ” สู่ “เข้าใจภาษา”</p>

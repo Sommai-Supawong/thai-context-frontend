@@ -35,7 +35,7 @@ export const initialExperience: Experience = {
   evidence: null,
 };
 export type Event =
-  | { type: "HERO_SEARCH" | "COMPOSER_SEARCH"; query: string; id: number }
+  | { type: "HERO_SEARCH" | "COMPOSER_SEARCH" | "DIRECT_SEARCH"; query: string; id: number }
   | { type: "RESOLVE"; id: number; result: SearchResponse }
   | { type: "REJECT"; id: number; error: string }
   | {
@@ -52,6 +52,8 @@ export const isCinematic = (s: ExperienceState) =>
   s === "hero-search-submitting" || s === "hero-cinematic-transition";
 export function experienceReducer(s: Experience, e: Event): Experience {
   switch (e.type) {
+    case "DIRECT_SEARCH":
+      return { ...s, state: "results-searching", hasResults: true, revealed: true, query: e.query, requestId: e.id, loading: true, error: "" };
     case "HERO_SEARCH":
       if (s.state !== "hero-idle") return s;
       return {
@@ -125,8 +127,8 @@ export function experienceReducer(s: Experience, e: Event): Experience {
         requestId: s.requestId + 1,
       };
     case "VIEW_RESULTS":
-      return s.hasResults && s.state === "hero-idle"
-        ? { ...s, state: "results-active" }
+      return s.state === "hero-idle"
+        ? { ...s, state: "results-active", hasResults: true, revealed: true }
         : s;
     case "OPEN_EVIDENCE":
       return s.state === "results-active" && !s.loading

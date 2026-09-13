@@ -48,6 +48,7 @@ export default function HeroSection({
   const [ready, setReady] = useState(false);
   const [inView, setInView] = useState(true);
   const [failed, setFailed] = useState(false);
+  const [canRenderScene, setCanRenderScene] = useState(false);
   const cinema = useRef(initialCinema());
   const timeline = useRef<gsap.core.Timeline | null>(null);
   const accepted = useRef(false);
@@ -57,6 +58,16 @@ export default function HeroSection({
   const bloom = useRef<HTMLDivElement>(null);
   const root = useRef<HTMLElement>(null);
 
+  useEffect(() => {
+    // R3F initializes asynchronously; a React boundary cannot catch every
+    // renderer initialization rejection. Probe support before mounting Canvas.
+    const canvas = document.createElement("canvas");
+    const context = canvas.getContext("webgl2");
+    if (context) {
+      context.getExtension("WEBGL_lose_context")?.loseContext();
+      setCanRenderScene(true);
+    } else setFailed(true);
+  }, []);
   useEffect(() => {
     const media = matchMedia("(prefers-reduced-motion: reduce)");
     const update = () => setReduced(media.matches);
@@ -93,14 +104,14 @@ export default function HeroSection({
     const t = gsap.timeline({ onComplete: finish });
     timeline.current = t;
     if (reduced || !ready || failed) {
-      t.to([ui.current, nav.current], { opacity: 0, duration: 0.22 }, 0).to(
+      t.to([ui.current, nav.current], { opacity: 0, duration: 0.14 }, 0).to(
         overlay.current,
-        { opacity: 1, duration: 0.28, ease: "power1.inOut" },
+        { opacity: 1, duration: 0.14, ease: "power1.inOut" },
         0,
       );
       t.call(onWhite).to(overlay.current, {
         opacity: 0,
-        duration: 0.28,
+        duration: 0.14,
         ease: "sine.out",
       });
       return;
@@ -108,7 +119,7 @@ export default function HeroSection({
     t.to(cinema.current, { ambient: 0, duration: 0.25, ease: "sine.out" }, 0)
       .to(
         [ui.current, nav.current],
-        { opacity: 0, y: -8, duration: 0.42, ease: "power2.inOut" },
+        { opacity: 0, duration: 0.42, ease: "power2.inOut" },
         0.15,
       )
       .to(
@@ -145,6 +156,7 @@ export default function HeroSection({
         { opacity: 0, duration: 0.32, ease: "sine.out" },
         1.6,
       );
+    t.timeScale(1.12);
   }
   useImperativeHandle(heroRef, () => ({
     play,
@@ -153,7 +165,7 @@ export default function HeroSection({
       accepted.current = false;
       Object.assign(cinema.current, initialCinema());
       gsap.set(ui.current, { opacity: 1, y: 0 });
-      gsap.set(overlay.current, { opacity: 0 });
+      gsap.set(overlay.current, { opacity: 0, pointerEvents: "none" });
       gsap.set(bloom.current, { opacity: 0, scale: 1 });
       setState("idle");
     },
@@ -168,6 +180,7 @@ export default function HeroSection({
       aria-label="ค้นหาคำจากความหมาย"
     >
       <div className="hero-background" aria-hidden="true" />
+      <span className="hero-page-note" aria-hidden="true">ภาษา มีชีวิต</span>
       <div
         className="book-shadow"
         aria-hidden="true"
@@ -182,7 +195,7 @@ export default function HeroSection({
         />
       )}
       <div className="scene-layer">
-        {!failed && (
+        {canRenderScene && !failed && (
           <HeroSceneBoundary onFail={onFail}>
             <Hero3DScene
               active={inView}
@@ -198,17 +211,18 @@ export default function HeroSection({
       <div ref={ui} className="hero-ui" inert={state !== "idle"}>
         <div className="hero-copy">
           <p className="eyebrow">
-            <span /> พื้นที่เล็ก ๆ ของความหมายที่ยิ่งใหญ่
+            <span /> พจนานุกรมไทยร่วมสมัย
           </p>
           <h1>
-            วันนี้คุณ
+            ไม่ต้องรู้คำ
             <br />
-            อยาก<span className="accent">สื่ออะไร?</span>
+            ก็รู้ว่าควรใช้<span className="accent">คำไหน</span>
           </h1>
           <p className="support">
-            เล่าความหมายที่คุณกำลังคิด
-            <br className="desktop-break" /> แม้ยังไม่รู้ว่าคำนั้นเรียกว่าอะไร
+            ค้นจากสิ่งที่คุณต้องการสื่อ สู่คำที่ใช่
+            <br className="desktop-break" /> พร้อมความหมาย บริบท ตัวอย่าง และแหล่งที่มา
           </p>
+          <p className="search-prompt">วันนี้คุณอยากสื่ออะไร?</p>
           <HeroSearch busy={state !== "idle"} onSearch={onSearch} />
         </div>
         <div className="hero-foot">

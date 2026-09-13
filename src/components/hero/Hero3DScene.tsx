@@ -41,6 +41,23 @@ function Scene({
   const { camera, size } = useThree();
   const phase = useRef(0);
   const target = useMemoVector();
+  const pointer = useRef({ x: 0, y: 0 });
+  const smoothed = useRef({ x: 0, y: 0 });
+  useEffect(() => {
+    const hero = document.getElementById("hero");
+    const media = matchMedia("(min-width: 1024px) and (pointer: fine)");
+    pointer.current = { x: 0, y: 0 };
+    const move = (event: PointerEvent) => {
+      if (reducedMotion || !media.matches) return;
+      const rect = hero!.getBoundingClientRect();
+      pointer.current = { x: ((event.clientX - rect.left) / rect.width - .5) * 2, y: ((event.clientY - rect.top) / rect.height - .5) * 2 };
+    };
+    const reset = () => { pointer.current = { x: 0, y: 0 }; };
+    media.addEventListener("change", reset);
+    hero?.addEventListener("pointermove", move);
+    hero?.addEventListener("pointerleave", reset);
+    return () => { media.removeEventListener("change", reset); hero?.removeEventListener("pointermove", move); hero?.removeEventListener("pointerleave", reset); };
+  }, [reducedMotion]);
   useEffect(() => {
     onReady();
   }, [onReady]);
@@ -50,14 +67,17 @@ function Scene({
     const fov = ((camera as THREE.PerspectiveCamera).fov * Math.PI) / 180;
     const worldHeight = 2 * Math.tan(fov / 2) * distance;
     const x = mobile ? 0 : worldHeight * (size.width / size.height) * 0.245;
-    const y = mobile ? worldHeight * 0.225 : 0.08;
+    const y = mobile ? worldHeight * 0.27 : 0.08;
     if (!document.hidden && !reducedMotion)
       phase.current += Math.min(delta, 0.05);
     const wave = (phase.current * Math.PI * 2) / 7;
+    const interpolation = 1 - Math.exp(-Math.min(delta, .05) * 6);
+    smoothed.current.x += ((reducedMotion ? 0 : pointer.current.x) - smoothed.current.x) * interpolation;
+    smoothed.current.y += ((reducedMotion ? 0 : pointer.current.y) - smoothed.current.y) * interpolation;
     if (root.current) {
       root.current.position.set(
-        x,
-        y + Math.sin(wave) * ((worldHeight / size.height) * 5) * cinema.ambient,
+        x + smoothed.current.x * (worldHeight / size.height) * 4 * cinema.ambient,
+        y + (Math.sin(wave) * 5 - smoothed.current.y * 3) * (worldHeight / size.height) * cinema.ambient,
         0,
       );
       root.current.rotation.set(
@@ -65,7 +85,8 @@ function Scene({
         -0.25 + Math.sin(wave + 0.5) * 0.018 * cinema.ambient,
         -0.11,
       );
-      root.current.scale.setScalar((mobile ? 0.72 : 1) * cinema.scale);
+      const bookScale = mobile ? 0.43 : Math.min(0.78, worldHeight * (size.width / size.height) * 0.3 / 2.6);
+      root.current.scale.setScalar(bookScale * cinema.scale);
     }
     // Dolly and gaze converge together on the exposed page block.
     camera.position.set(
@@ -84,7 +105,7 @@ function Scene({
       <directionalLight
         ref={light}
         position={[-3, 5, 7]}
-        color="#fff8e9"
+        color="#f5faff"
         intensity={3.2}
       />
       <directionalLight position={[5, 1, 2]} intensity={0.8} />

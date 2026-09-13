@@ -1,4 +1,4 @@
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import PopularSuggestions from "./PopularSuggestions";
 export default function HeroSearch({
   busy,
@@ -10,6 +10,8 @@ export default function HeroSearch({
   const [query, setQuery] = useState("");
   const [error, setError] = useState("");
   const input = useRef<HTMLTextAreaElement>(null);
+  const [hydrated, setHydrated] = useState(false);
+  useEffect(() => setHydrated(true), []);
   function submit() {
     if (busy) return;
     if (!query.trim()) {
@@ -53,7 +55,7 @@ export default function HeroSearch({
           id="meaning"
           rows={2}
           maxLength={600}
-          disabled={busy}
+          disabled={busy || !hydrated}
           value={query}
           aria-invalid={!!error}
           aria-describedby={error ? "search-error" : undefined}
@@ -74,8 +76,8 @@ export default function HeroSearch({
           placeholder={`เช่น อยากได้คำที่หมายถึง “ทำงานได้ผลดี
 โดยใช้ทรัพยากรน้อย”`}
         />
-        <button className="search-submit" disabled={busy} type="submit">
-          <span>{busy ? "กำลังเปิดโลกของคำ" : "ค้นหาคำที่ใช่"}</span>
+        <button className="search-submit" disabled={busy || !hydrated} type="submit" aria-label={busy ? "กำลังเปิดโลกของคำ" : "ค้นหาคำที่ใช่"}>
+          <span className="sr-only">{busy ? "กำลังเปิดโลกของคำ" : "ค้นหาคำที่ใช่"}</span>
           <span aria-hidden="true">↗</span>
         </button>
       </form>

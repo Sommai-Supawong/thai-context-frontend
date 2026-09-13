@@ -44,24 +44,33 @@ export default function MorphingNavbar({
           THAI CONTEXT<small>จากค้นคำ สู่เข้าใจภาษา</small>
         </span>
       </a>
-      <nav className={`nav-links ${open ? "is-open" : ""}`} aria-label="เมนูหลัก">
-        {floating && <a href="#compare" onClick={() => setOpen(false)}>เปรียบเทียบคำ</a>}
-        {floating && <a href="#evolution" onClick={() => setOpen(false)}>วิวัฒนาการคำ</a>}
-        {floating && <a href="#dialects" onClick={() => setOpen(false)}>ภาษาถิ่น</a>}
+      <nav id="primary-navigation" className={`nav-links ${open ? "is-open" : ""}`} aria-label="เมนูหลัก" onKeyDown={e => { if (e.key === "Escape") { setOpen(false); document.getElementById("menu-toggle")?.focus(); } }}>
+        <a href="#hero" aria-current={!floating ? "page" : undefined} onClick={e => { setOpen(false); onHome(e); }}>หน้าหลัก</a>
+        <a href="#compare" onClick={() => setOpen(false)}>เปรียบเทียบคำ</a>
+        <a href="#evolution" onClick={() => setOpen(false)}>สำรวจคำ</a>
+        <a href="#dialects" onClick={() => setOpen(false)}>ภาษาถิ่น</a>
         <a
           className="nav-search"
           href={floating ? "#persistent-meaning" : "#meaning"}
-          onClick={() => setOpen(false)}
+          onClick={e => {
+            e.preventDefault(); setOpen(false);
+            const composer = document.querySelector('.composer-wrap[data-visible="true"]');
+            if (floating && composer) document.getElementById("persistent-meaning")?.focus({ preventScroll: true });
+            else onHome(e);
+          }}
         >
           เริ่มค้นหาความหมาย <span aria-hidden="true">↗</span>
         </a>
       </nav>
-      {floating && (
+      {(
         <button
+          id="menu-toggle"
           type="button"
           className="nav-menu-button"
           aria-label={open ? "ปิดเมนู" : "เปิดเมนู"}
           aria-expanded={open}
+          aria-controls="primary-navigation"
+          onKeyDown={e => { if (e.key === "Escape") setOpen(false); }}
           onClick={() => setOpen((value) => !value)}
         >
           <span /><span /><span />

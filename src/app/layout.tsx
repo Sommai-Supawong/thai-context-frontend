@@ -6,7 +6,7 @@ import "./globals.css";
 export const metadata: Metadata = {
   title: "THAI CONTEXT — โลกของคำ เริ่มที่ความหมาย",
   description:
-    "ไม่ต้องรู้คำ ก็รู้ว่าควรใช้คำไหน — Full-screen 3D Hero Prototype",
+    "พจนานุกรมไทยร่วมสมัย ค้นจากความหมาย เข้าใจบริบท เปรียบเทียบคำ และตรวจสอบแหล่งที่มา",
 };
 export default function RootLayout({
   children,

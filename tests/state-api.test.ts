@@ -18,6 +18,11 @@ const req = (query: unknown) =>
     body: JSON.stringify({ query }),
   });
 describe("request races and API boundary", () => {
+  it("validates sources even when legacy evidence is also present", () => {
+    const result = mockSearch("ทำงาน");
+    const word = result.recommendations[0];
+    expect(() => parseResponse({ ...result, recommendations: [{ ...word, sources: [{ source_book: 7 }] }] })).toThrow("Invalid evidence");
+  });
   it("ignores stale results and invalid composer submissions during cinematic", () => {
     const s = reduce(initial, { type: "HERO_SEARCH", id: 2, query: "วิจัย" });
     expect(

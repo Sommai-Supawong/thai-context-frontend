@@ -23,6 +23,10 @@ export default function EvolutionExplorer({ word }: { word: string }) {
               aria-selected={active === index}
               tabIndex={active === index ? 0 : -1}
               onClick={() => setActive(index)}
+              onKeyDown={e => {
+                const next = e.key === "ArrowRight" ? (index + 1) % 3 : e.key === "ArrowLeft" ? (index + 2) % 3 : e.key === "Home" ? 0 : e.key === "End" ? 2 : -1;
+                if (next >= 0) { e.preventDefault(); setActive(next); document.getElementById(`era-tab-${next}`)?.focus(); }
+              }}
             >
               <span>พ.ศ.</span> {item.year}
             </button>
@@ -49,4 +53,3 @@ export default function EvolutionExplorer({ word }: { word: string }) {
     </section>
   );
 }
-

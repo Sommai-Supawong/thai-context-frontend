@@ -23,6 +23,7 @@ let pending: Promise<Response>;
 let timelines: gsap.core.Timeline[] = [];
 const original = gsap.timeline.bind(gsap);
 beforeEach(() => {
+  vi.spyOn(HTMLCanvasElement.prototype, "getContext").mockReturnValue({ getExtension: () => null } as unknown as WebGL2RenderingContext);
   timelines = [];
   pending = new Promise((r) => (resolveFetch = r));
   vi.spyOn(gsap, "timeline").mockImplementation((vars) => {
@@ -71,7 +72,7 @@ describe("Search orchestration with real GSAP and DOM", () => {
     expect(phase()).toBe("hero-cinematic-transition");
     expect(t.duration()).toBeCloseTo(1.92);
     await respond();
-    expect(document.getElementById("search-results")).toBeNull();
+    expect((document.querySelector(".results-inner") as HTMLElement).style.visibility).toBe("hidden");
     let opacityAtJump = "";
     vi.mocked(HTMLElement.prototype.scrollIntoView).mockImplementation(
       function (this: HTMLElement, options) {
@@ -86,7 +87,7 @@ describe("Search orchestration with real GSAP and DOM", () => {
     seek(t, 1.6);
     expect(opacityAtJump).toBe("1");
     expect(phase()).toBe("results-active");
-    expect(document.querySelectorAll(".result-card")).toHaveLength(3);
+    expect(document.querySelectorAll(".candidate-row")).toHaveLength(3);
     expect(document.querySelector(".navbar-floating")).not.toBeNull();
     expect(document.querySelector(".bottom-composer")).not.toBeNull();
     expect(
@@ -116,7 +117,7 @@ describe("Search orchestration with real GSAP and DOM", () => {
         .opacity,
     ).toBe("0");
     await respond("วิจัย");
-    expect(document.querySelectorAll(".result-card")).toHaveLength(1);
+    expect(document.querySelectorAll(".candidate-row")).toHaveLength(1);
     expect(document.querySelectorAll(".result-skeleton")).toHaveLength(0);
   });
   it("composer updates directly without cinematic replay or a second scroll", async () => {
@@ -135,7 +136,7 @@ describe("Search orchestration with real GSAP and DOM", () => {
     await act(async () => {
       fireEvent.click(screen.getByRole("button", { name: "ค้นหาคำอีกครั้ง" }));
     });
-    expect(document.querySelectorAll(".result-card")).toHaveLength(2);
+    expect(document.querySelectorAll(".candidate-row")).toHaveLength(2);
     expect(timelines).toHaveLength(1);
     expect(HTMLElement.prototype.scrollIntoView).toHaveBeenCalledTimes(
       oldScroll,
@@ -153,7 +154,7 @@ describe("Search orchestration with real GSAP and DOM", () => {
     const t = submitHero(q);
     await respond(q);
     seek(t, 1.92);
-    expect(document.querySelectorAll(".result-card")).toHaveLength(count);
+    expect(document.querySelectorAll(".candidate-row")).toHaveLength(count);
     if (!count) expect(screen.getByText("ยังไม่พบคำที่ตรงพอ")).toBeTruthy();
   });
   it("reduced motion uses the short fade and still reaches results", async () => {
@@ -166,10 +167,10 @@ describe("Search orchestration with real GSAP and DOM", () => {
     render(<SearchExperience />);
     const t = submitHero();
     await respond();
-    expect(t.duration()).toBeCloseTo(0.56);
-    seek(t, 0.56);
+    expect(t.duration()).toBeCloseTo(0.28);
+    seek(t, 0.28);
     expect(phase()).toBe("results-active");
-    expect(document.querySelectorAll(".result-card")).toHaveLength(3);
+    expect(document.querySelectorAll(".candidate-row")).toHaveLength(3);
   });
   it("blank input does not request; evidence opens and closes through the central state", async () => {
     render(<SearchExperience />);

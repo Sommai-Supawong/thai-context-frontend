@@ -26,9 +26,9 @@ export default function DialectExplorer() {
               <strong>{entry.word}</strong>
               <span className="dialect-meaning">{entry.meaning}</span>
               <span className={`provenance ${entry.provenance}`}>
-                {entry.provenance === "official" ? "✓ แหล่งข้อมูลทางการ" : "◌ AI ช่วยอนุมาน"}
+                {entry.provenance === "official" ? "ชุดข้อมูลสาธิต · ยังไม่รับรอง" : "◌ ยังไม่มีหลักฐานทางการเพียงพอ"}
               </span>
-              <span className="dialect-source" aria-hidden={!active}>{entry.source}</span>
+              <span className="dialect-source">{entry.source}</span>
             </button>
           );
         })}
@@ -37,4 +37,3 @@ export default function DialectExplorer() {
     </section>
   );
 }
-

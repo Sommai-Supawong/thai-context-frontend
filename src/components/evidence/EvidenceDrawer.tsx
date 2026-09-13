@@ -13,20 +13,29 @@ export default function EvidenceDrawer({
   useEffect(() => {
     const prior = document.activeElement as HTMLElement | null;
     const old = document.body.style.overflow;
-    dialog.current?.showModal();
+    const element = dialog.current;
+    element?.showModal();
     document.body.style.overflow = "hidden";
     return () => {
       document.body.style.overflow = old;
-      dialog.current?.close();
+      element?.close();
       prior?.focus({ preventScroll: true });
     };
   }, []);
-  const evidence = word.evidence;
+  const sources = word.sources ?? (word.evidence ? [word.evidence] : []);
   return (
     <dialog
       ref={dialog}
       className="evidence-drawer"
       aria-labelledby="evidence-title"
+      onKeyDown={e => {
+        if (e.key !== "Tab") return;
+        const controls = e.currentTarget.querySelectorAll<HTMLElement>('button, a[href], input, select, textarea, [tabindex="0"]');
+        const first = controls[0], last = controls[controls.length - 1];
+        if ((e.shiftKey && document.activeElement === first) || (!e.shiftKey && document.activeElement === last)) {
+          e.preventDefault(); (e.shiftKey ? last : first)?.focus();
+        }
+      }}
       onCancel={(e) => {
         e.preventDefault();
         onClose();
@@ -48,8 +57,8 @@ export default function EvidenceDrawer({
           </button>
         </header>
         <h2 id="evidence-title">{word.headword}</h2>
-        {evidence ? (
-          <>
+        {sources.length ? (
+          sources.map((evidence, index) => <section key={index} className="evidence-source">
             <p className="evidence-status">
               {isDemo
                 ? "ข้อมูลเดโม — ยังไม่รับรองหลักฐาน"
@@ -64,13 +73,13 @@ export default function EvidenceDrawer({
               {evidence.page_number ? ` · หน้า ${evidence.page_number}` : ""}
             </p>
             <blockquote>{evidence.quote}</blockquote>
-          </>
+          </section>)
         ) : (
           <div className="safe-abstention">
             <h3>ยังไม่มีหลักฐานที่รับรอง</h3>
             <p>
-              ระบบยังไม่พบข้อมูลที่ได้รับการรับรองเพียงพอ
-              จึงไม่สร้างข้อความอ้างอิงหรือเลขหน้าขึ้นมาเอง
+              ระบบยังไม่พบหลักฐานที่เพียงพอสำหรับยืนยันข้อมูลนี้
+              จึงไม่ควรสรุปเป็นข้อเท็จจริง
             </p>
             {isDemo && <p>คำแนะนำนี้เป็นข้อมูลเดโมสำหรับทดสอบการใช้งาน</p>}
           </div>

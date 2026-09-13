@@ -19,6 +19,8 @@ import {
   isCinematic,
 } from "@/lib/experience-state";
 import { searchMeaning } from "@/lib/api-client";
+import { audioManager } from "@/lib/audio-manager";
+import CapabilityStrip from "./hero/CapabilityStrip";
 export default function SearchExperience() {
   const [model, dispatch] = useReducer(experienceReducer, initialExperience);
   const current = useRef(model);
@@ -31,10 +33,36 @@ export default function SearchExperience() {
   const locked = useRef(false);
   const [reduced, setReduced] = useState(false);
   const [compareSelected, setCompareSelected] = useState<string[]>([]);
+  const [sharedWord, setSharedWord] = useState("");
+  const [footerVisible, setFooterVisible] = useState(false);
   const floating =
     model.hasResults &&
     model.state !== "hero-idle" &&
     !isCinematic(model.state);
+  useEffect(() => {
+    if (typeof IntersectionObserver === "undefined") return;
+    const observer = new IntersectionObserver(([entry]) => setFooterVisible(entry.isIntersecting), { rootMargin: "0px 0px 140px 0px" });
+    const footer = document.getElementById("footer");
+    if (footer) observer.observe(footer);
+    return () => observer.disconnect();
+  }, []);
+  useEffect(() => {
+    const url = new URL(location.href);
+    const query = url.searchParams.get("q");
+    if (!query?.trim() || query.length > 600) return;
+    const controller = new AbortController();
+    request.current = controller;
+    const id = ++sequence.current;
+    setSharedWord(url.searchParams.get("word") ?? "");
+    dispatch({ type: "DIRECT_SEARCH", query, id });
+    searchMeaning(query, controller.signal).then(result => {
+      if (!controller.signal.aborted) dispatch({ type: "RESOLVE", id, result });
+    }).catch(() => {
+      if (!controller.signal.aborted) dispatch({ type: "REJECT", id, error: "ขณะนี้ค้นหาไม่ได้ กรุณาลองอีกครั้ง" });
+    });
+    const frame = requestAnimationFrame(() => document.getElementById("search-results")?.scrollIntoView({ behavior: "instant", block: "start" }));
+    return () => { controller.abort(); cancelAnimationFrame(frame); };
+  }, []);
   useEffect(() => {
     const m = matchMedia("(prefers-reduced-motion: reduce)");
     const update = () => setReduced(m.matches);
@@ -43,6 +71,7 @@ export default function SearchExperience() {
     return () => {
       m.removeEventListener("change", update);
       request.current?.abort();
+      audioManager.stop();
     };
   }, []);
   useEffect(() => {
@@ -55,21 +84,23 @@ export default function SearchExperience() {
   }, [model.state]);
   const back = useCallback(() => {
     if (
-      locked.current ||
+      (locked.current && !current.current.revealed) ||
       isCinematic(current.current.state) ||
       current.current.state === "evidence-open"
     )
       return;
     request.current?.abort();
+    locked.current = false;
+    audioManager.stop();
     hero.current?.reset();
-    gsap.set(nav.current, { clearProps: "opacity,transform" });
+    gsap.set(nav.current, { clearProps: "opacity" });
     flushSync(() => dispatch({ type: "BACK" }));
   }, []);
   useEffect(() => {
     const onScroll = () => {
       if (
-        locked.current ||
-        !current.current.hasResults ||
+        (locked.current && !current.current.revealed) ||
+        isCinematic(current.current.state) ||
         current.current.state === "evidence-open"
       )
         return;
@@ -93,6 +124,10 @@ export default function SearchExperience() {
     )
       return;
     locked.current = true;
+    audioManager.stop();
+    setSharedWord("");
+    setCompareSelected([]);
+    if (location.search) history.replaceState(null, "", location.pathname);
     request.current?.abort();
     const controller = new AbortController();
     request.current = controller;
@@ -137,9 +172,12 @@ export default function SearchExperience() {
         flushSync(() => dispatch({ type: "WHITE" }));
         if (results.current) {
           results.current.style.minHeight = "";
+          const behavior = document.documentElement.style.scrollBehavior;
+          document.documentElement.style.scrollBehavior = "auto";
           results.current.scrollIntoView({ behavior: "auto", block: "start" });
+          document.documentElement.style.scrollBehavior = behavior;
         }
-        gsap.set(nav.current, { clearProps: "opacity,transform" });
+        gsap.set(nav.current, { clearProps: "opacity" });
       },
       () => {
         flushSync(() => dispatch({ type: "REVEAL" }));
@@ -170,7 +208,7 @@ export default function SearchExperience() {
       <MorphingNavbar
         navRef={nav}
         floating={floating}
-        busy={isCinematic(model.state) || (floating && !model.revealed)}
+        busy={isCinematic(model.state)}
         onHome={(e) => {
           e.preventDefault();
           back();
@@ -182,7 +220,8 @@ export default function SearchExperience() {
           }
         }}
       />
-      {model.hasResults && (
+      <CapabilityStrip />
+      {(
         <SearchResults
           experience={model}
           reduced={reduced}
@@ -191,9 +230,10 @@ export default function SearchExperience() {
           compareSelected={compareSelected}
           onCompare={toggleCompare}
           onRetry={() => startRequest(model.query, "composer")}
+          sharedWord={sharedWord}
         />
       )}
-      {model.hasResults && model.revealed && (
+      {(
         <div className="discovery-chapters">
           <ContextComparator
             words={comparisonWords.length >= 2 ? comparisonWords : mockSearch("ทำงาน").recommendations}
@@ -206,8 +246,9 @@ export default function SearchExperience() {
           <Footer />
         </div>
       )}
-      {floating && (
+      {(
         <PersistentSearchComposer
+          visible={floating && !footerVisible && model.state !== "evidence-open"}
           query={model.query}
           busy={model.loading || !model.revealed}
           onSearch={(q) => startRequest(q, "composer")}

@@ -3,15 +3,19 @@ export default function PersistentSearchComposer({
   query,
   busy,
   onSearch,
+  visible = true,
 }: {
   query: string;
   busy: boolean;
   onSearch: (query: string) => void;
+  visible?: boolean;
 }) {
   const [value, setValue] = useState(query);
   const [error, setError] = useState("");
+  const [hidden, setHidden] = useState(!visible);
   const input = useRef<HTMLTextAreaElement>(null);
   useEffect(() => setValue(query), [query]);
+  useEffect(() => { if (visible) setHidden(false); }, [visible]);
   function submit() {
     if (busy) return;
     if (!value.trim()) {
@@ -24,7 +28,14 @@ export default function PersistentSearchComposer({
     onSearch(value.trim());
   }
   return (
-    <div className="composer-wrap">
+    <div className="composer-wrap" data-visible={visible} inert={hidden} aria-hidden={hidden}
+      onTransitionEnd={event => {
+        if (event.target !== event.currentTarget || event.propertyName !== "opacity" || visible) return;
+        if (event.currentTarget.contains(document.activeElement)) {
+          (document.activeElement as HTMLElement)?.blur();
+        }
+        setHidden(true);
+      }}>
       <form
         className="bottom-composer"
         role="search"
